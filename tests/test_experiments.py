@@ -61,3 +61,25 @@ class ExperimentTests(unittest.TestCase):
             self.assertEqual(client.get('/api/experiments').json()['experiments'][0]['loaded'],True)
 
 if __name__=='__main__':unittest.main()
+
+class SampleLifecycleTests(unittest.TestCase):
+    def test_reloads_complete_collection_after_sample_deleted(self):
+        st=Store()
+        st.load_experiment('text')
+        before=list(st.experiment_docs['text'].values())
+        st.delete(before[0])
+        st.load_experiment('text')
+        new=set(st.experiment_docs['text'].values())
+        self.assertEqual(len(new),4)
+        self.assertTrue(new.isdisjoint(before))
+
+    def test_voice_resamples_to_mono_16000(self):
+        import wave
+        if not ( __import__('shutil').which('espeak') or __import__('shutil').which('espeak-ng') ):
+            self.skipTest('espeak not installed')
+        with tempfile.TemporaryDirectory() as tmp:
+            ex=experiments.EXPERIMENTS['voice'].files[0]
+            path=experiments.create_media('voice',ex,Path(tmp))
+            with wave.open(str(path),'rb') as f:
+                self.assertEqual(f.getframerate(),16000)
+                self.assertEqual(f.getnchannels(),1)
