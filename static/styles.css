@@ -18,3 +18,22 @@
 /* Keep headings sans-serif when remote font hosting is unavailable. */
 .welcome-message h2,.sim-big,.guide-feature h2,.dimensional-guide h2{font-family:Manrope,system-ui,sans-serif}
 .below-explain{margin-top:55px;padding-top:26px;border-top:1px solid #273742}.below-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:19px}.below-header h2{font-family:Manrope,system-ui,sans-serif;font-size:21px;letter-spacing:-.7px;margin:10px 0 0}.more-guide{background:transparent;border:0;color:var(--mint);font-size:12px;padding:8px}.below-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.below-cards article{border:1px solid #2b3d43;background:#121c24;border-radius:10px;padding:19px}.below-number{color:#a4d9b8;font-size:9px;letter-spacing:1.3px;font-weight:800}.below-cards h3{margin:14px 0 8px;font-family:Manrope,system-ui,sans-serif;font-size:14px}.below-cards p{margin:0;color:#899da2;line-height:1.75;font-size:11px}@media(max-width:720px){.below-cards{grid-template-columns:1fr}.below-header h2{font-size:17px}}
+
+/* Guided, isolated retrieval experiments */
+.experiment-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;margin-bottom:20px}
+.experiment-card{text-align:left;background:#17232b;border:1px solid #324249;color:#dfeee6;padding:16px;border-radius:11px;min-height:126px}
+.experiment-card:hover,.experiment-card.selected{border-color:#a4dec0;background:#233d31}
+.experiment-card strong,.experiment-card small{display:block}.experiment-card strong{font-size:13px;margin:7px 0}.experiment-card small{font-size:11px;color:#95aca6;line-height:1.5}.experiment-card .experiment-type{color:var(--mint);font-size:10px;letter-spacing:1.2px;font-weight:800}
+.experiment-stage{padding:23px}.experiment-heading{display:flex;justify-content:space-between;align-items:start;gap:14px}
+.experiment-heading h2{font-family:Manrope,sans-serif;margin:10px 0;font-size:22px}.experiment-heading p{font-size:12px;color:#94a9aa;margin-top:0}
+.experiment-query{background:#0d171e;border:1px solid #263a42;border-radius:10px;margin:18px 0;padding:18px;display:grid;gap:7px}
+.experiment-query small{font-size:10px;letter-spacing:1px;color:#93b3a6;margin-top:8px}.experiment-query strong{font-size:17px;color:#e6f8eb}.experiment-query span,.experiment-query p{font-size:12px;color:#c0d4ce;margin:0;line-height:1.7}
+.experiment-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.experiment-actions .primary-button{flex:1 1 150px;justify-content:center}.experiment-actions label{font-size:11px;color:#abc0b5}.experiment-actions select{background:#1b2a32;border:1px solid #4d625c;color:#eaf2ec;padding:8px;border-radius:6px;margin-left:6px}
+.experiment-status{font-size:12px;padding:14px 0;color:#c3ddca;line-height:1.7}
+.experiment-results{display:grid;gap:9px;margin:10px 0}.experiment-metrics{display:flex;gap:8px;flex-wrap:wrap}.experiment-metric{background:#23392e;border:1px solid #3c594c;padding:10px 14px;border-radius:8px;font-size:12px;color:#d3e8da}.experiment-metric b{color:var(--mint)}
+.experiment-hit{background:#15252c;border:1px solid #32444a;border-radius:9px;padding:12px;font-size:12px;color:#cee1d7;line-height:1.65}.experiment-hit.expected{border-color:#76ac90}.experiment-hit header{display:flex;justify-content:space-between;gap:8px}.experiment-hit p{color:#94aaa6;margin:6px 0}.experiment-hit img,.experiment-hit video{max-width:230px;max-height:180px;margin-top:8px;border-radius:8px}.experiment-hit audio{display:block;max-width:100%;margin-top:8px}
+.experiment-help{font-size:11px;color:#83979e;line-height:1.7}
+@media(max-width:720px){.experiment-stage{padding:15px}.experiment-heading{flex-direction:column}.experiment-cards{grid-template-columns:1fr 1fr}.experiment-actions{flex-direction:column;align-items:stretch}}
+@media(max-width:420px){.experiment-cards{grid-template-columns:1fr}}
+
+.source-card audio,.source-card video{display:block;max-width:100%;max-height:180px;margin-top:9px;border-radius:7px}

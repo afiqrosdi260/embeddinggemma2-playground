@@ -101,8 +101,9 @@
   function changeView(view) {
     document.querySelectorAll('.view').forEach(e => e.classList.toggle('active', e.id === `view-${view}`));
     document.querySelectorAll('.nav-item').forEach(e => e.classList.toggle('active', e.dataset.view === view));
-    const titles = {playground:'Playground', similarity:'Similarity lab', library:'Knowledge base', guide:'Model guide'};
+    const titles = {playground:'Playground', similarity:'Similarity lab', experiments:'Experiments', library:'Knowledge base', guide:'Model guide'};
     $('view-breadcrumb').textContent = titles[view] || 'Playground';
+    if (view === 'experiments') refreshExperiments();
     window.scrollTo({top:0, behavior:'smooth'});
   }
   // Demonstration scoring is deliberately lexical and NEVER presented as a vector score.
@@ -149,6 +150,73 @@
       ? 'Scores are raw cosine similarities, not probability estimates or verified facts.'
       : 'These are approximate keyword-overlap scores. They are NOT EmbeddingGemma cosine similarities.';
   }
+  function mediaNode(item) {
+    const kind=item.kind; const element=node(kind==='image'?'img':kind==='video'?'video':'audio');
+    element.src=item.media_url;
+    if(kind==='image'){element.alt=item.title;element.loading='lazy';}
+    else {element.controls=true;element.preload='none';if(kind==='video') element.playsInline=true;}
+    return element;
+  }
+
+  const experimentIcons={text:'▤',code:'⌘',image:'▧',pdf:'▣',audio:'♫',voice:'♬',video:'▶'};
+  let experiments=[]; let chosenExperiment='text';let experimentBusy=false;
+  function experimentStatus(message){$('experiment-status').textContent=message;}
+  async function refreshExperiments(){
+    if(!state.backend){experimentStatus('Start the FastAPI backend to use built-in experiments.');return;}
+    try { const response=await api('/api/experiments'); experiments=response.experiments;
+      const cards=$('experiments-cards');cards.replaceChildren();
+      for(const ex of experiments){
+        const b=node('button','experiment-card'+(ex.id===chosenExperiment?' selected':''));b.type='button';
+        b.append(node('span','experiment-type', `${experimentIcons[ex.id]||'✳'}  ${ex.id.toUpperCase()} · ${ex.sample_count} SAMPLES`),node('strong','',ex.title),node('small','',ex.description));
+        b.addEventListener('click',()=>{chosenExperiment=ex.id;renderExperiment();});cards.append(b);
+      }
+      renderExperiment();
+    }catch(err){experimentStatus(`Experiment catalog unavailable: ${err.message}`);}
+  }
+  function renderExperiment(){
+    const ex=experiments.find(e=>e.id===chosenExperiment);if(!ex)return;
+    document.querySelectorAll('.experiment-card').forEach(b=>b.classList.toggle('selected',b.querySelector('.experiment-type')?.textContent.includes(ex.id.toUpperCase()+' ·')));
+    $('experiment-title').textContent=ex.title; $('experiment-description').textContent=ex.description;
+    $('experiment-query').textContent=ex.query;$('experiment-expected').textContent=ex.expected_key;
+    $('experiment-lesson').textContent=ex.lesson;
+    $('experiment-loaded').textContent=ex.loaded?'SAMPLES READY':'NOT LOADED';
+    $('experiment-run').disabled=!ex.loaded || !isReal();
+    $('experiment-compare').disabled=!ex.loaded || !isReal();
+    $('experiment-results').replaceChildren();$('experiment-dimensions').replaceChildren();
+    experimentStatus(ex.loaded?isReal()?'Samples ready. Run the real-model experiment.':'Samples ready. Click Load real model in the header before measuring embeddings.':'Step 1: Load the isolated sample collection. This does not require the model yet.');
+  }
+  async function experimentAction(action){
+    if(experimentBusy)return;
+    const ex=experiments.find(e=>e.id===chosenExperiment);if(!ex)return;
+    experimentBusy=true;for(const id of ['experiment-load','experiment-run','experiment-compare'])$(id).disabled=true;
+    experimentStatus(action==='load'?'Generating and indexing samples…':action==='run'?'Calculating real embeddings and ranking sources…':'Comparing rankings at 128 / 256 / 512 / 768 dimensions…');
+    try{
+      if(action==='load'){
+        await api(`/api/experiments/${ex.id}/load`,{method:'POST'});
+        await refreshDocuments();await refreshExperiments();
+        experimentStatus('Sample collection loaded. In real mode, run the query. Media sample generation depends on local encoders/codecs.');
+      } else if(action==='run'){
+        const data=await api(`/api/experiments/${ex.id}/run`,{method:'POST',body:JSON.stringify({dimension:Number($('experiment-dim').value),top_k:Math.min(10,ex.sample_count)})});
+        const area=$('experiment-results');area.replaceChildren();
+        const metrics=node('div','experiment-metrics');
+        for(const [label,value] of [['Expected rank',data.rank??'Not found'],['Hit@1',data.hit_at_1?'Yes':'No'],['Hit@3',data.hit_at_3?'Yes':'No'],['Reciprocal rank',data.reciprocal_rank]]){
+          const el=node('span','experiment-metric');el.append(node('b','',`${label}: `),document.createTextNode(String(value)));metrics.append(el);
+        }area.append(metrics);
+        for (const [i,hit] of data.results.entries()) {
+          const box=node('article','experiment-hit'+(i+1===data.rank?' expected':''));
+          const head=node('header');head.append(node('strong','',`#${i+1} · ${hit.title}`),node('span','',`Cosine ${hit.score.toFixed(3)}`));box.append(head,node('p','',hit.passage||'Media input'));
+          if(hit.media_url)box.append(mediaNode(hit));area.append(box);
+        }
+        experimentStatus(`Real model · ${data.dimension}d · task ${data.task} · ${data.corpus_size} isolated sources. These are measured retrieval results, not generated answers.`);
+      }else{
+        const data=await api(`/api/experiments/${ex.id}/dimensions`);
+        const area=$('experiment-dimensions');area.replaceChildren(node('strong','', 'Embedding dimension comparison'));
+        for(const line of data.dimensions)area.append(node('div','experiment-hit',`${line.dimension}d · expected rank ${line.rank??'—'} · Hit@1 ${line.hit_at_1?'Yes':'No'} · top: ${line.top_title??'none'}`));
+        experimentStatus('Dimensions compared using one query embedding, truncated and re-normalized at each selected width.');
+      }
+    }catch(err){experimentStatus(`${action} failed: ${err.message}`);}
+    finally{experimentBusy=false;const current=experiments.find(e=>e.id===chosenExperiment);$('experiment-load').disabled=false;$('experiment-run').disabled=!current?.loaded||!isReal();$('experiment-compare').disabled=!current?.loaded||!isReal();}
+  }
   function renderReply(query, data) {
     const wrap=node('div','message bot');
     const top=node('div','response-top');
@@ -164,7 +232,7 @@
       const card=node('div','source-card'); const h=node('div','source-card-head');
       h.append(node('span','source-card-title',item.title),node('span','source-score',item.score.toFixed(3)));
       card.append(h,node('p','',item.passage || 'Media match'));
-      if (item.media_url) {const img=node('img'); img.src=item.media_url; img.alt=item.title; img.loading='lazy';card.append(img);}
+      if (item.media_url) {card.append(mediaNode(item));}
       wrap.append(card);
     }
     wrap.append(node('div','response-note',data.mode==='real' ? 'Source ranking: normalized vector dot product · No generative LLM' : 'Demonstration ranking: word overlap · NOT actual embedding inference'));
@@ -264,7 +332,10 @@
     $('add-text').addEventListener('click',addText);
     $('file-upload').addEventListener('change',e=>{const file=e.target.files?.[0];uploadFile(file);e.target.value='';});
     $('compare-button').addEventListener('click',compare);
-    renderDocs();checkBackend();
+    $('experiment-load').addEventListener('click',()=>experimentAction('load'));
+    $('experiment-run').addEventListener('click',()=>experimentAction('run'));
+    $('experiment-compare').addEventListener('click',()=>experimentAction('compare')); 
+    renderDocs();checkBackend().then(()=>refreshExperiments());
   }
   init();
 })();

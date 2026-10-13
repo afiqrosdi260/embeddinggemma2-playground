@@ -181,3 +181,7 @@ Once these experiments work, the natural next step is **RAG**:
 `Data → EmbeddingGemma 2 → vector search → retrieved evidence → Qwen/another LLM → generated answer with sources`
 
 That is a different application layer. **EmbeddingGemma 2 retrieves meaningfully related information; it does not generate the final answer.**
+
+## 11. Guided experiment page (recommended)
+
+Open **Experiments** to evaluate curated data without finding your own files. For a first test choose **Why did the hydraulic pump fail?**. Load the four samples, initialize the real model, and run the default query. The target is the hydraulic pump incident, with three unrelated distractors. Read the actual expected rank and Hit@1/Hit@3; no score is predetermined. Change from 768 to 128 dimensions and compare. If image/audio/video examples fail to load, check the separately documented codec dependencies instead of interpreting an upload error as a poor embedding result.

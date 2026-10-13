@@ -13,6 +13,7 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
+from experiments import EXPERIMENTS, manifest, create_media
 
 import numpy as np
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -93,7 +94,7 @@ class Document:
         return {"id": self.id, "title": self.title, "kind": self.kind,
                 "preview": (self.content[:175] if self.content else f"{self.kind.title()} file"),
                 "chunks": len(self.segments) if self.kind == "text" else 1,
-                "media_url": f"/api/media/{self.id}" if self.kind == "image" else None}
+                "media_url": f"/api/media/{self.id}" if self.kind in ("image", "audio", "video") else None}
 
 
 class Store:
@@ -105,6 +106,7 @@ class Store:
         self.error: str | None = None
         self.docs: list[Document] = []
         self.index: list[tuple[str, int, np.ndarray]] = []
+        self.experiment_docs: dict[str, dict[str, str]] = {}
         for title, content in SEEDS:
             self.add_text(title, content)
 
@@ -177,27 +179,27 @@ class Store:
             with self.lock:
                 self.index.extend((doc.id, i, unit(e, 768)) for i, e in enumerate(embeddings))
 
-    def search(self, query: str, dimension: int, top_k: int) -> dict:
+    def search(self, query: str, dimension: int, top_k: int, doc_ids: set[str] | None = None, task: str = "SearchQuery", query_vector=None) -> dict:
         if self.state != "ready" or self.model is None:
             raise ValueError("Load the real model before searching")
         with self.inference_lock:
-            q768 = np.asarray(self.model.encode(query, prompt_name="SearchQuery",
+            q768 = np.asarray(query_vector if query_vector is not None else self.model.encode(query, prompt_name=task,
                                          normalize_embeddings=True), dtype=np.float32)
             qvec = unit(q768, dimension)
             with self.lock:
                 index, docs = list(self.index), {d.id: d for d in self.docs}
             found = []
             for did, chunk_number, emb in index:
-                if did not in docs:
+                if did not in docs or (doc_ids is not None and did not in doc_ids):
                     continue
                 doc = docs[did]
                 score = float(np.dot(qvec, unit(emb, dimension)))
                 found.append({"id": did, "title": doc.title, "kind": doc.kind,
                               "passage": doc.segments[chunk_number] if doc.kind == "text" else f"{doc.kind.title()} match: {doc.title}",
                               "score": round(score, 4), "chunk": chunk_number + 1,
-                              "media_url": f"/api/media/{did}" if doc.kind == "image" else None})
+                              "media_url": f"/api/media/{did}" if doc.kind in ("image", "audio", "video") else None})
             found.sort(key=lambda x: x["score"], reverse=True)
-            return {"mode": "real", "dimension": dimension, "results": found[:top_k],
+            return {"mode": "real", "dimension": dimension, "task": task, "results": found[:top_k],
                     "vector_preview": [round(float(x), 4) for x in qvec[:16]],
                     "indexed_chunks": len(index)}
 
@@ -219,9 +221,88 @@ class Store:
                     return False
                 self.docs = [d for d in self.docs if d.id != did]
                 self.index = [entry for entry in self.index if entry[0] != did]
+                for mapping in self.experiment_docs.values():
+                    for key, mapped_id in list(mapping.items()):
+                        if mapped_id == did:
+                            del mapping[key]
             if doc.path:
                 Path(doc.path).unlink(missing_ok=True)
             return True
+
+
+    def load_experiment(self, exp_id: str) -> dict:
+        if exp_id not in EXPERIMENTS:
+            raise KeyError(exp_id)
+        with self.lock:
+            if self.state in ("loading", "indexing"):
+                raise ValueError("Wait for model initialization to finish")
+            if exp_id in self.experiment_docs and len(self.experiment_docs[exp_id]) == len(EXPERIMENTS[exp_id].files):
+                return {"loaded": True, "documents": self.experiment_docs[exp_id]}
+        experiment = EXPERIMENTS[exp_id]
+        added = []
+        mapping = {}
+        try:
+            for sample in experiment.files:
+                if exp_id == "pdf":
+                    # Exercise real PDF ingestion, not a simulation of retrieval results.
+                    from pypdf import PdfReader
+                    path = create_media(exp_id, sample, UPLOADS)
+                    content = "\n".join(page.extract_text() or "" for page in PdfReader(path).pages)
+                    path.unlink(missing_ok=True)
+                    if not content.strip():
+                        raise RuntimeError("The generated PDF contains no selectable text")
+                    doc = self.add_text(sample.title, content)
+                elif sample.kind == "text":
+                    doc = self.add_text(sample.title, sample.text)
+                else:
+                    path = create_media(exp_id, sample, UPLOADS)
+                    doc = self.add_media(sample.title, "audio" if sample.kind == "voice" else sample.kind, path)
+                added.append(doc)
+                self.index_one(doc)
+                mapping[sample.key] = doc.id
+            with self.lock:
+                self.experiment_docs[exp_id] = mapping
+            return {"loaded": True, "documents": mapping}
+        except Exception:
+            for doc in added:
+                self.delete(doc.id)
+            raise
+
+    def evaluate_experiment(self, exp_id: str, dimension: int, top_k: int, query_vector=None) -> dict:
+        if exp_id not in EXPERIMENTS:
+            raise KeyError(exp_id)
+        exp = EXPERIMENTS[exp_id]
+        with self.lock:
+            mapping = dict(self.experiment_docs.get(exp_id, {}))
+        if len(mapping) != len(exp.files):
+            raise ValueError("Load this experiment's samples first")
+        # Evaluate the complete ranking against the experiment corpus, not general seed data.
+        result = self.search(exp.query, dimension, len(mapping), set(mapping.values()), exp.task, query_vector)
+        expected = mapping[exp.expected_key]
+        position = next((i+1 for i, hit in enumerate(result['results']) if hit['id'] == expected), None)
+        result['results'] = result['results'][:top_k]
+        result.update({"experiment_id": exp_id, "expected_key": exp.expected_key,
+                       "expected_title": next(f.title for f in exp.files if f.key == exp.expected_key),
+                       "rank": position, "hit_at_1": position == 1,
+                       "hit_at_3": position is not None and position <= 3,
+                       "reciprocal_rank": round(1.0 / position, 4) if position else 0.0,
+                       "corpus_size": len(mapping), "query": exp.query})
+        return result
+
+    def compare_experiment_dimensions(self, exp_id: str) -> dict:
+        if exp_id not in EXPERIMENTS:
+            raise KeyError(exp_id)
+        if self.state != "ready" or self.model is None:
+            raise ValueError("Load the real model first")
+        exp = EXPERIMENTS[exp_id]
+        with self.inference_lock:
+            qvec = np.asarray(self.model.encode(exp.query, prompt_name=exp.task,
+                                                 normalize_embeddings=True), dtype=np.float32)
+        cases = [self.evaluate_experiment(exp_id, dim, 3, qvec) for dim in DIMS]
+        return {"experiment_id": exp_id, "mode": "real", "dimensions": [
+            {"dimension": c["dimension"], "rank": c["rank"], "hit_at_1": c["hit_at_1"],
+             "hit_at_3": c["hit_at_3"], "reciprocal_rank": c["reciprocal_rank"],
+             "top_title": c["results"][0]["title"] if c["results"] else None} for c in cases]}
 
 
 store = Store()
@@ -340,7 +421,7 @@ def delete_document(doc_id: str):
 @app.get("/api/media/{doc_id}")
 def media(doc_id: str):
     with store.lock:
-        doc = next((d for d in store.docs if d.id == doc_id and d.kind == "image"), None)
+        doc = next((d for d in store.docs if d.id == doc_id and d.kind in ("image", "audio", "video")), None)
     if doc is None or doc.path is None:
         raise HTTPException(404, "Image not found")
     return FileResponse(doc.path)
@@ -358,6 +439,51 @@ async def search(payload: SearchInput):
 async def similarity(payload: SimilarityInput):
     try:
         return await asyncio.to_thread(store.similarity, payload.a, payload.b, payload.dimension)
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from e
+
+
+class ExperimentRun(BaseModel):
+    dimension: Literal[128, 256, 512, 768] = 768
+    top_k: int = Field(default=3, ge=1, le=10)
+
+
+@app.get("/api/experiments")
+def list_experiments():
+    with store.lock:
+        loaded = {eid for eid,mapping in store.experiment_docs.items() if len(mapping) == len(EXPERIMENTS[eid].files)}
+    return {"experiments": [{**m, "loaded": m["id"] in loaded} for m in manifest()]}
+
+
+@app.post("/api/experiments/{exp_id}/load")
+async def load_experiment(exp_id: str):
+    if exp_id not in EXPERIMENTS:
+        raise HTTPException(404, "Unknown experiment")
+    try:
+        result = await asyncio.to_thread(store.load_experiment, exp_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from e
+    except Exception as e:
+        raise HTTPException(422, f"Sample generation or indexing failed: {type(e).__name__}: {e}") from e
+
+
+@app.post("/api/experiments/{exp_id}/run")
+async def run_experiment(exp_id: str, payload: ExperimentRun):
+    if exp_id not in EXPERIMENTS:
+        raise HTTPException(404, "Unknown experiment")
+    try:
+        return await asyncio.to_thread(store.evaluate_experiment, exp_id, payload.dimension, payload.top_k)
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from e
+
+
+@app.get("/api/experiments/{exp_id}/dimensions")
+async def experiment_dimensions(exp_id: str):
+    if exp_id not in EXPERIMENTS:
+        raise HTTPException(404, "Unknown experiment")
+    try:
+        return await asyncio.to_thread(store.compare_experiment_dimensions, exp_id)
     except ValueError as e:
         raise HTTPException(409, str(e)) from e
 

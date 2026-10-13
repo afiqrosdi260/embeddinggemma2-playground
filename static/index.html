@@ -15,8 +15,9 @@
       <nav aria-label="Main navigation">
         <button class="nav-item active" data-view="playground"><span class="nav-icon">▦</span> Playground <span class="nav-shortcut">01</span></button>
         <button class="nav-item" data-view="similarity"><span class="nav-icon">◈</span> Similarity lab <span class="nav-shortcut">02</span></button>
-        <button class="nav-item" data-view="library"><span class="nav-icon">▤</span> Knowledge base <span class="nav-shortcut">03</span></button>
-        <button class="nav-item" data-view="guide"><span class="nav-icon">◷</span> Model guide <span class="nav-shortcut">04</span></button>
+        <button class="nav-item" data-view="experiments"><span class="nav-icon">⚗</span> Experiments <span class="nav-shortcut">03</span></button>
+        <button class="nav-item" data-view="library"><span class="nav-icon">▤</span> Knowledge base <span class="nav-shortcut">04</span></button>
+        <button class="nav-item" data-view="guide"><span class="nav-icon">◷</span> Model guide <span class="nav-shortcut">05</span></button>
       </nav>
       <div class="sidebar-model">
         <div class="small-label">ACTIVE MODEL</div>
@@ -77,6 +78,20 @@
             <article><div class="below-number">02 / MULTIMODAL</div><h3>Connect different media</h3><p>Compare text, code, images, audio and video in one shared vector space.</p></article>
             <article><div class="below-number">03 / RAG BUILDING BLOCK</div><h3>Ground a chatbot</h3><p>Retrieve evidence for a separate LLM to explain. EmbeddingGemma 2 does not generate the answer.</p></article>
           </div>
+        </section>
+      </section>
+
+      <section class="view secondary-view" id="view-experiments">
+        <div class="page-title"><div class="eyebrow">LEARN / GUIDED EXPERIMENTS</div><h1>Try it. <em>Measure it.</em></h1><p>Load a tiny, known dataset. Run the real embedding model. Inspect which source ranked highest and whether it matches the expected result. No generated answers or made-up scores.</p></div>
+        <div id="experiments-cards" class="experiment-cards" aria-label="Choose an experiment"><p class="experiment-help">Start the backend to load experiments.</p></div>
+        <section class="panel experiment-stage" id="experiment-stage" aria-live="polite">
+          <div class="experiment-heading"><div><div class="eyebrow">SELECTED EXPERIMENT</div><h2 id="experiment-title">Hydraulic pump text search</h2><p id="experiment-description">Choose an experiment above to get started.</p></div><span class="soft-tag" id="experiment-loaded">NOT LOADED</span></div>
+          <div class="experiment-query"><small>SEARCH QUERY</small><strong id="experiment-query">Why did the hydraulic pump fail?</strong><small>EXPECTED SOURCE</small><span id="experiment-expected">Equipment incident — hydraulic pump</span><small>WHAT YOU WILL LEARN</small><p id="experiment-lesson">Does the correct source rank ahead of unrelated documents?</p></div>
+          <div class="experiment-actions"><button class="primary-button" id="experiment-load">1 · Load sample files</button><button class="primary-button" id="experiment-run">2 · Run real model</button><button class="primary-button" id="experiment-compare">3 · Compare dimensions</button><label for="experiment-dim">Dimensions <select id="experiment-dim"><option>128</option><option>256</option><option>512</option><option selected>768</option></select></label></div>
+          <div class="experiment-status" id="experiment-status" role="status">Start the FastAPI backend, select an experiment, then load its samples.</div>
+          <div id="experiment-results" class="experiment-results"></div>
+          <div id="experiment-dimensions" class="experiment-results"></div>
+          <p class="experiment-help">Rank is the expected item's position among only this experiment's sample files. Hit@1 means the expected item ranked first; Hit@3 means it appeared in the top three. A higher similarity score is not proof of correctness. All observations require <strong>Real model</strong> mode.</p>
         </section>
       </section>
 
