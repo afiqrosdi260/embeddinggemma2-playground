@@ -79,7 +79,7 @@ EXPERIMENTS = {
         ),
         "Recording A contains speech about the pump. Requires 'espeak' or 'say' plus ffmpeg."),
     "video": Experiment(
-        "video", "Find a rocket video", "Find a moving synthetic animation using a text description.",
+        "video", "Find a rocket video", "Retrieve a video containing a static synthetic scene.",
         "Find a short video of a rocket launch", "rocket_clip", (
             Example("rocket_clip", "Synthetic clip A", kind="video"),
             Example("coffee_clip", "Synthetic clip B", kind="video"),
@@ -90,7 +90,7 @@ EXPERIMENTS = {
 
 def manifest() -> list[dict]:
     return [{"id": e.id, "title": e.title, "description": e.description, "query": e.query,
-             "expected_key": e.expected_key, "lesson": e.lesson, "task": e.task,
+             "expected_key": e.expected_key, "expected_title": next(f.title for f in e.files if f.key == e.expected_key), "lesson": e.lesson, "task": e.task,
              "sample_count": len(e.files), "kinds": sorted(set(f.kind for f in e.files))}
             for e in EXPERIMENTS.values()]
 
