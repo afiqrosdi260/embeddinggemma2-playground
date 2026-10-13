@@ -1,0 +1,4 @@
+-r requirements.txt
+# Optional inference dependencies. May require a compatible torch build and system ffmpeg.
+soundfile>=0.13
+torchcodec>=0.5

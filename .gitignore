@@ -1,0 +1,14 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+# Generated/private assets and model caches
+.uploads/
+.env
+.env.*
+!.env.example
+.DS_Store
+# Local test outputs
+.coverage
+htmlcov/

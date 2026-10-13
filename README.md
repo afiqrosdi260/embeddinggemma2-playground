@@ -104,3 +104,28 @@ For production, introduce data isolation, durable vector indexes (e.g. PostgreSQ
 - [EmbeddingGemma 2 model card](https://huggingface.co/google/embeddinggemma-2)
 - [Google's SentenceTransformers inference guide](https://ai.google.dev/gemma/docs/embeddinggemma/inference-embeddinggemma-with-sentence-transformers)
 - [Google's multimodal embedding guide](https://ai.google.dev/gemma/docs/embeddinggemma/multimodal-embeddinggemma-with-sentence-transformers)
+
+## Guided experiments (new)
+
+The **Experiments** page provides isolated sample datasets and evaluates real-model retrieval.
+
+1. Start FastAPI and visit the **Experiments** tab.
+2. Choose **Text: Why did the hydraulic pump fail?** and click **Load sample files**. This loads four contrasting passages (pump, cafe, rocket, security).
+3. Click **Load real model** in the top bar; wait for **Real model**. The model download needs internet access and may require accepting its Hugging Face terms.
+4. Click **Run real model** to see the actual rank of the hydraulic-pump report, cosine scores, Hit@1, Hit@3, and reciprocal rank. The query uses Google's `SearchQuery` prompt and the corpus uses titled document formatting.
+5. Click **Compare dimensions** to compare 128 / 256 / 512 / 768 with the same input, truncated and normalized correctly. These are *observations*, not benchmark guarantees.
+
+Other built-in experiments: code search (uses `CodeRetrieval`), cross-modal drawings, generated audio, text-based PDFs, synthetic voice, and video. Media experiments require supported local decoders; `requirements-media.txt` provides optional Python dependencies. Voice generation also needs `espeak`/`espeak-ng` or macOS `say` with `ffmpeg`; video generation requires `ffmpeg`. Missing codecs produce an explicit error without pretending the experiment passed. Generated examples are synthetic and are not intended as model benchmarks.
+
+Each experiment runs against **only its own samples** so built-in tutorial documents cannot contaminate rankings. Media files are created locally, without uploading user data elsewhere. The in-memory index still resets at server restart.
+
+> Validation scope: the automated tests use deterministic fake embeddings to test API behavior and ranking math. They do **not** prove accuracy or successful inference from the downloaded checkpoint. Run the real checkpoint and confirm each modality on your machine before claiming it works end-to-end. Audio/video support varies by local TorchCodec/FFmpeg installation.
+
+Run checks:
+
+```bash
+python -m unittest discover -s tests -v
+python -m py_compile server.py experiments.py
+```
+
+This repository intentionally has **no GitHub Actions workflow**; the model download and local multimedia dependencies make unattended CI expensive and unreliable for this small learning project.
