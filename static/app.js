@@ -89,6 +89,7 @@
       await api('/api/model/load', {method:'POST'});
       state.modelState = 'ready';
       await refreshDocuments();
+      await refreshExperiments();
       toast('EmbeddingGemma 2 loaded. Real embeddings enabled.');
     } catch (err) {
       toast(`Unable to load model: ${err.message}`);
@@ -177,7 +178,7 @@
     const ex=experiments.find(e=>e.id===chosenExperiment);if(!ex)return;
     document.querySelectorAll('.experiment-card').forEach(b=>b.classList.toggle('selected',b.querySelector('.experiment-type')?.textContent.includes(ex.id.toUpperCase()+' ·')));
     $('experiment-title').textContent=ex.title; $('experiment-description').textContent=ex.description;
-    $('experiment-query').textContent=ex.query;$('experiment-expected').textContent=ex.expected_key;
+    $('experiment-query').textContent=ex.query;$('experiment-expected').textContent=ex.expected_title;
     $('experiment-lesson').textContent=ex.lesson;
     $('experiment-loaded').textContent=ex.loaded?'SAMPLES READY':'NOT LOADED';
     $('experiment-run').disabled=!ex.loaded || !isReal();
