@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1117" />
+  <title>EmbedLab — EmbeddingGemma 2 Playground</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-glyph">✳</div><div><strong>embed<span>lab</span></strong><small>MODEL PLAYGROUND</small></div></div>
+      <div class="nav-label">WORKSPACE</div>
+      <nav aria-label="Main navigation">
+        <button class="nav-item active" data-view="playground"><span class="nav-icon">▦</span> Playground <span class="nav-shortcut">01</span></button>
+        <button class="nav-item" data-view="similarity"><span class="nav-icon">◈</span> Similarity lab <span class="nav-shortcut">02</span></button>
+        <button class="nav-item" data-view="library"><span class="nav-icon">▤</span> Knowledge base <span class="nav-shortcut">03</span></button>
+        <button class="nav-item" data-view="guide"><span class="nav-icon">◷</span> Model guide <span class="nav-shortcut">04</span></button>
+      </nav>
+      <div class="sidebar-model">
+        <div class="small-label">ACTIVE MODEL</div>
+        <div class="model-chip"><span class="mini-star">✳</span><div><b>EmbeddingGemma 2</b><small>google/embeddinggemma-2</small></div></div>
+        <div class="sidebar-details"><span>Parameters</span><b>740M</b></div>
+        <div class="sidebar-details"><span>Vector size</span><b>768d</b></div>
+        <div class="sidebar-details"><span>Modalities</span><b>4</b></div>
+        <div class="mode-banner" id="side-mode"><span class="dot amber"></span><span>Checking connection…</span></div>
+      </div>
+      <div class="sidebar-bottom"><div class="avatar">G</div><div><b>Local workspace</b><small>Experimental prototype</small></div><span class="arrow">↗</span></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div class="crumbs"><span>Workspace</span><span class="chev">/</span><strong id="view-breadcrumb">Playground</strong></div>
+        <div class="header-actions"><button id="load-model" class="load-model-button" title="Download and initialize the real local model">Load real model <span>↗</span></button><span id="top-mode" class="top-badge"><span class="dot amber"></span> Demo mode</span><a href="https://huggingface.co/google/embeddinggemma-2" target="_blank" rel="noopener noreferrer" class="doc-link">Model card <span>↗</span></a></div>
+      </header>
+
+      <section class="view active" id="view-playground">
+        <div class="hero">
+          <div class="eyebrow"><span class="eyebrow-mark">✦</span> EMBEDDING INTELLIGENCE LAB <span class="tiny-line"></span> V 1.0</div>
+          <h1>Search by <em>meaning.</em><br />Not just keywords.</h1>
+          <p>Explore how EmbeddingGemma 2 turns your questions and files into comparable vectors. Ask something, inspect the nearest matches, and see what's happening beneath the surface.</p>
+          <div class="hero-stats"><span><b>740M</b> parameters</span><i></i><span><b>768</b> dimensions</span><i></i><span><b>100+</b> languages</span><i></i><span><b>4</b> modalities</span></div>
+          <div class="hero-art" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit orbit-three"></div><div class="core-shape">✳</div><span class="art-dot a"></span><span class="art-dot b"></span><span class="art-dot c"></span></div>
+        </div>
+
+        <div class="workbench">
+          <section class="chat-panel panel">
+            <div class="panel-heading"><div><span class="section-icon">✳</span><strong>Retrieval chat</strong><span class="soft-tag">SEMANTIC SEARCH</span></div><button class="icon-button" id="clear-chat" aria-label="Clear conversation" title="Clear chat">↻</button></div>
+            <div class="messages" id="messages" role="log" aria-live="polite">
+              <div class="welcome-message"><div class="welcome-icon">✳</div><h2>What would you like to explore?</h2><p>Ask a question about the sample knowledge base, or add your own documents and media. I'll find the closest matching content.</p><div class="suggestions"><button class="suggestion" data-prompt="How is semantic search different from keyword search?">How is semantic search different? <span>↗</span></button><button class="suggestion" data-prompt="How can embeddings help an AI application discover API capabilities?">Find API capabilities <span>↗</span></button><button class="suggestion" data-prompt="Apa itu carian semantik?">Try Bahasa Melayu <span>↗</span></button></div></div>
+            </div>
+            <div class="chat-input-wrap"><form id="chat-form" class="chat-input"><textarea id="chat-text" rows="2" aria-label="Search knowledge base" placeholder="Ask something about your knowledge base…"></textarea><div class="composer-bottom"><span class="composer-tip"><span class="kbd">↵</span> Enter to search <span class="faint">· Shift+Enter new line</span></span><button type="submit" class="send-button" id="send-button" aria-label="Send search">➤</button></div></form><p class="chat-disclaimer" id="chat-disclaimer">Demo mode uses keyword overlap, not EmbeddingGemma inference.</p></div>
+          </section>
+          <aside class="inspector panel">
+            <div class="panel-heading"><div><span class="section-icon amber-icon">≋</span><strong>Retrieval inspector</strong></div><span class="live-pill" id="inspector-state"><i></i> IDLE</span></div>
+            <div class="inspector-inside">
+              <div class="setting-label">EMBEDDING DIMENSIONS <span class="info" title="Truncated Matryoshka vectors are re-normalized before similarity.">ⓘ</span></div>
+              <div class="dimensions" id="dimensions" role="group" aria-label="Embedding dimensions"><button data-dim="128">128</button><button data-dim="256">256</button><button data-dim="512">512</button><button data-dim="768" class="selected">768</button></div>
+              <div class="dim-note">Smaller vectors save storage. <a href="#vector-explain">Learn why ↓</a></div>
+              <div class="setting-row"><span class="setting-label">TOP MATCHES</span><select id="top-k" aria-label="Number of search results"><option>3</option><option selected>4</option><option>5</option><option>8</option></select></div>
+              <div class="inspector-divider"></div>
+              <div class="inspector-block-header"><span>NEAREST NEIGHBORS</span><span id="result-count">—</span></div>
+              <div id="inspector-results" class="inspector-results"><div class="inspector-empty"><div class="empty-rings">◎</div><b>Awaiting first query</b><span>Search the knowledge base to visualize the nearest content and similarity scores.</span></div></div>
+              <div class="inspector-divider"></div>
+              <div class="vector-heading"><span>VECTOR PREVIEW</span><span id="vector-label">Not available</span></div>
+              <div class="vector-viz" id="vector-bars"><span class="vector-placeholder">Real inference produces numeric embedding values here.</span></div>
+              <div class="explain-hint" id="score-hint">Cosine similarity is a ranking signal, not a probability of correctness.</div>
+            </div>
+          </aside>
+        </div>
+        <div class="section-footer"><span><span class="dot gray"></span><span id="document-count">9</span> sources in knowledge base</span><button id="add-source-shortcut">+ Add your own source <span>↗</span></button></div>
+        <section class="below-explain" aria-labelledby="below-explain-title">
+          <div class="below-header"><div><span class="eyebrow">UNDER THE HOOD</span><h2 id="below-explain-title">What can this model actually do?</h2></div><button type="button" class="more-guide" id="learn-more">Explore model guide →</button></div>
+          <div class="below-cards">
+            <article><div class="below-number">01 / RETRIEVE</div><h3>Understand meaning</h3><p>Find documents using semantic similarity, even when the exact search words differ.</p></article>
+            <article><div class="below-number">02 / MULTIMODAL</div><h3>Connect different media</h3><p>Compare text, code, images, audio and video in one shared vector space.</p></article>
+            <article><div class="below-number">03 / RAG BUILDING BLOCK</div><h3>Ground a chatbot</h3><p>Retrieve evidence for a separate LLM to explain. EmbeddingGemma 2 does not generate the answer.</p></article>
+          </div>
+        </section>
+      </section>
+
+      <section class="view secondary-view" id="view-similarity">
+        <div class="page-title"><div class="eyebrow">WORKSPACE / EXPERIMENT 02</div><h1>Similarity <em>lab.</em></h1><p>Compare two pieces of text and measure how closely their meanings align in vector space.</p></div>
+        <div class="similarity-grid"><div class="panel sim-entry"><div class="setting-label">INPUT A <span class="hint-green">● REFERENCE</span></div><textarea id="similarity-a" placeholder="First sentence…">The car needs maintenance and repairs.</textarea><span class="field-foot">Try paraphrases, translations, or unrelated statements.</span></div><div class="panel sim-entry"><div class="setting-label">INPUT B <span class="hint-blue">● COMPARISON</span></div><textarea id="similarity-b" placeholder="Second sentence…">The automobile should be serviced.</textarea><span class="field-foot">Use the same language or compare across languages.</span></div></div>
+        <div class="similarity-controls"><div><span class="setting-label">VECTOR DIMENSIONS</span><select id="similarity-dim"><option>128</option><option>256</option><option>512</option><option selected>768</option></select></div><button class="primary-button" id="compare-button">Compare meaning <span>→</span></button></div>
+        <div class="sim-result panel" id="sim-result"><div class="sim-gauge"><div class="sim-big" id="sim-score">—</div><span id="sim-score-label">Awaiting comparison</span></div><div class="sim-explanation"><h3>What does this measure?</h3><p id="sim-description">Both texts are converted to vectors, then cosine similarity measures how closely the vectors point in the same direction. A high value suggests related representations, not verified truth.</p><div class="sim-progress"><div id="sim-progress-fill"></div></div><small id="sim-status">Launch real inference for genuine embedding similarity.</small></div></div>
+      </section>
+
+      <section class="view secondary-view" id="view-library">
+        <div class="page-title"><div class="eyebrow">WORKSPACE / DATASET 03</div><h1>Knowledge <em>base.</em></h1><p>Your source collection. Add text, code, images, audio, or video, then retrieve relevant chunks using a natural-language query.</p></div>
+        <div class="library-grid"><section class="panel add-panel"><div class="panel-heading"><strong>＋ Add content</strong></div><div class="add-inner"><div class="field-label">SOURCE TITLE</div><input type="text" id="doc-title" placeholder="e.g. API design guidelines" maxlength="140" /><div class="field-label">TEXT OR CODE</div><textarea id="doc-content" placeholder="Paste some paragraphs, notes, code, or documentation here…"></textarea><button class="primary-button full" id="add-text">Add text source <span>→</span></button><div class="or-divider">OR UPLOAD A FILE</div><label class="upload-drop"><input type="file" id="file-upload" accept=".txt,.md,.pdf,.png,.jpg,.jpeg,.webp,.wav,.flac,.mp3,.mp4,.mov,.webm" /><span>↥</span><strong>Choose a file to embed</strong><small>TXT · MD · PDF · Images · Audio · Video</small><small>Local backend required for media · max 15 MB</small></label><p id="library-message" class="library-message"></p></div></section>
+        <section class="panel list-panel"><div class="panel-heading"><strong>Sources <span class="soft-tag" id="library-count">9 ITEMS</span></strong><span class="subdued">IN MEMORY</span></div><div id="document-list" class="document-list"></div></section></div>
+        <p class="library-footnote">Prototype behavior: documents and embeddings live in RAM; uploads are stored in a local <code>.uploads</code> folder. Restarting the backend resets the source list to the built-in samples.</p>
+      </section>
+
+      <section class="view secondary-view" id="view-guide">
+        <div class="page-title"><div class="eyebrow">LEARN / MODEL OVERVIEW</div><h1>Meet your <em>embedding engine.</em></h1><p>What EmbeddingGemma 2 can — and cannot — do, and how this prototype uses it.</p></div>
+        <div class="guide-feature"><div class="guide-feature-icon">✳</div><div><span class="eyebrow">GOOGLE DEEPMIND · OPEN WEIGHTS</span><h2>A common space for different kinds of information.</h2><p>Text, code, images, audio, and video are encoded into vectors in the same semantic space. That lets you look for a picture using a written description, or find passages discussing a concept without exact keyword matches.</p></div></div>
+        <div class="capability-grid"><article class="cap-card"><div class="cap-icon">⌕</div><h3>Semantic search</h3><p>Retrieve relevant documents by concept instead of literal word matches.</p><span>AVAILABLE IN PLAYGROUND</span></article><article class="cap-card"><div class="cap-icon">▣</div><h3>Multimodal retrieval</h3><p>Use one text query to retrieve relevant images, audio recordings, or video.</p><span>AVAILABLE IN LOCAL MODE</span></article><article class="cap-card"><div class="cap-icon">≈</div><h3>Similarity & clustering</h3><p>Compare text meaning and group documents by semantic proximity.</p><span>SIMILARITY LAB AVAILABLE</span></article><article class="cap-card"><div class="cap-icon">◉</div><h3>RAG retrieval</h3><p>Find passages to hand to a separate generative LLM for grounded answers.</p><span>RETRIEVAL ONLY IN THIS APP</span></article></div>
+        <div class="panel pipeline"><div class="panel-heading"><strong>How this playground works</strong><span class="soft-tag">ARCHITECTURE</span></div><div class="pipeline-flow"><div class="pipe-node"><span>01</span><b>Input</b><small>Question or uploaded content</small></div><div class="pipe-arrow">→</div><div class="pipe-node"><span>02</span><b>EmbeddingGemma 2</b><small>Encode into vectors</small></div><div class="pipe-arrow">→</div><div class="pipe-node"><span>03</span><b>Cosine similarity</b><small>Rank closest matches</small></div><div class="pipe-arrow">→</div><div class="pipe-node"><span>04</span><b>Source passages</b><small>Inspect evidence, no LLM generation</small></div></div></div>
+        <div id="vector-explain" class="panel dimensional-guide"><div><div class="eyebrow">MATRYOSHKA REPRESENTATIONS</div><h2>Same model. Different vector sizes.</h2><p>EmbeddingGemma 2 generates 768 numbers per input. Because the embeddings are Matryoshka-trained, the first 512, 256, or 128 dimensions can be kept and renormalized. This reduces storage and indexing cost, at the expense of some retrieval quality.</p><p><strong>Important:</strong> query and document vectors must use the same dimensions. Values shown are cosine similarities — not confidence percentages.</p></div><div class="dim-illustration"><div class="dim-row"><span>768d</span><div class="dim-fill w100"></div><small>100%</small></div><div class="dim-row"><span>512d</span><div class="dim-fill w67"></div><small>67%</small></div><div class="dim-row"><span>256d</span><div class="dim-fill w33"></div><small>33%</small></div><div class="dim-row"><span>128d</span><div class="dim-fill w16"></div><small>17%</small></div><span class="dim-caption">RELATIVE VECTOR STORAGE · FLOAT32</span></div></div>
+        <div class="limits"><span>↳</span><p><strong>What it cannot do alone:</strong> write an original answer, verify facts, execute APIs, perform exact calculations, or reason about GIS geometry. For a genuine RAG chatbot, add a separate generative LLM after retrieval.</p></div>
+        <a class="guide-link" href="https://huggingface.co/google/embeddinggemma-2" target="_blank" rel="noopener noreferrer">Explore official model card <span>↗</span></a>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

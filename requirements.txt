@@ -1,0 +1,11 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+numpy>=1.26
+pypdf>=5.0
+pillow>=10.0
+sentence-transformers>=5.1
+transformers>=4.56
+# Optional for audio/video inference (installation support varies by platform):
+# soundfile>=0.13
+# torchcodec>=0.5
