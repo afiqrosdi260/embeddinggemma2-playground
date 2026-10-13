@@ -238,6 +238,13 @@ class Store:
                 raise ValueError("Wait for model initialization to finish")
             if exp_id in self.experiment_docs and len(self.experiment_docs[exp_id]) == len(EXPERIMENTS[exp_id].files):
                 return {"loaded": True, "documents": self.experiment_docs[exp_id]}
+        # Reload cleanly if the user removed one sample from an existing collection.
+        with self.lock:
+            old_ids = list(self.experiment_docs.get(exp_id, {}).values())
+        for existing in old_ids:
+            self.delete(existing)
+        with self.lock:
+            self.experiment_docs.pop(exp_id, None)
         experiment = EXPERIMENTS[exp_id]
         added = []
         mapping = {}
