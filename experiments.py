@@ -149,6 +149,23 @@ def _pdf(path: Path, text: str):
     path.write_bytes(pdf)
 
 
+def _ensure_voice_16khz(path: Path) -> None:
+    """Resample espeak's often-22050 Hz PCM WAV to model-recommended mono 16 kHz."""
+    import numpy as np
+    with wave.open(str(path), 'rb') as src:
+        channels, width, rate = src.getnchannels(), src.getsampwidth(), src.getframerate()
+        raw = src.readframes(src.getnframes())
+    if width != 2:
+        raise RuntimeError('Speech synthesizer must produce 16-bit PCM WAV')
+    samples = np.frombuffer(raw, dtype='<i2').astype(np.float32).reshape(-1,channels).mean(axis=1)
+    if rate != 16000:
+        positions = np.arange(max(1,round(len(samples)*16000/rate))) * (rate/16000)
+        samples = np.interp(positions, np.arange(len(samples)), samples).astype(np.float32)
+    with wave.open(str(path), 'wb') as dst:
+        dst.setnchannels(1);dst.setsampwidth(2);dst.setframerate(16000)
+        dst.writeframes(np.clip(samples,-32768,32767).astype('<i2').tobytes())
+
+
 def create_media(exp_id: str, example: Example, target: Path) -> Path:
     """Create a media example in a controlled temp dir; no network or user input."""
     target.mkdir(parents=True,exist_ok=True)
@@ -166,6 +183,7 @@ def create_media(exp_id: str, example: Example, target: Path) -> Path:
         path=target/f'{example.key}.wav'
         if espeak:
             subprocess.run([espeak,'-w',str(path),example.text],check=True,capture_output=True,timeout=20)
+            _ensure_voice_16khz(path)
         else:
             with tempfile.TemporaryDirectory() as tmp:
                 aiff=Path(tmp)/'voice.aiff'
